@@ -1,5 +1,5 @@
 ---
-name: monitoring-jobs
+name: hokusai-monitoring-jobs
 description: Use when the user asks about the status, progress, output, history, or failure of jobs on HOKUSAI BigWaterfall2 (HBW2), or about queue and node availability.
 ---
 

@@ -105,7 +105,7 @@ python3 -m venv .venv && .venv/bin/pip install -e .   # or just use ./run.sh
 - Test the plugin in Claude Code:
   `/plugin marketplace add <repo-path>` → `/plugin install hokusai@hokusai-marketplace`.
 - User settings live in `~/.hokusai/config.json` (may contain an embedding API
-  key — never commit it, never echo the key). The `configuring` skill
+  key — never commit it, never echo the key). The `hokusai-configuring` skill
   documents the schema.
 
 ## Repository map
@@ -126,7 +126,8 @@ server/hokusai_mcp/
   serving.py            shared CLI entry point
 data/hokusai_config.json  static cluster facts served by get_facility
 data/docs_index/        committed docs index (chunks.json + embeddings.npy)
-skills/                 configuring, submitting-jobs, monitoring-jobs,
-                        hokusai-reference, demo
-Rikyu-Agent/            reference: the AI4S/GB200 project this was ported from
+skills/                 hokusai-configuring, hokusai-submitting-jobs,
+                        hokusai-monitoring-jobs, hokusai-reference, hokusai-demo
+                        (machine-prefixed so both this and the AI4S plugin can be
+                        installed at once without skill-name collisions)
 ```

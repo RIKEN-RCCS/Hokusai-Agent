@@ -14,7 +14,7 @@ In Claude Code:
 /reload-plugins
 ```
 
-Then run `/demo` to verify the connection end-to-end.
+Then run `/hokusai-demo` to verify the connection end-to-end.
 
 ## Configuration
 

@@ -1,6 +1,6 @@
 ---
-name: demo
-description: Interactive demo of HokusaiAgent — walks through facility info, live cluster status, docs search, filesystem access, and CPU job submission on HOKUSAI BigWaterfall2 (HBW2). User-invocable with /demo.
+name: hokusai-demo
+description: Interactive demo of HokusaiAgent — walks through facility info, live cluster status, docs search, filesystem access, and CPU job submission on HOKUSAI BigWaterfall2 (HBW2). User-invocable with /hokusai-demo.
 ---
 
 # HokusaiAgent demo
@@ -102,4 +102,4 @@ Summarize what just happened in 5 bullet points:
 - A CPU job submitted, ran, and its output (Intel Xeon node info) retrieved
 - Everything went through one SSH layer to the HBW2 front-end
 
-Then say: *"From here you can submit real workloads with /submitting-jobs, monitor them with /monitoring-jobs, or ask anything about the cluster."*
+Then say: *"From here you can submit real workloads with /hokusai-submitting-jobs, monitor them with /hokusai-monitoring-jobs, or ask anything about the cluster."*

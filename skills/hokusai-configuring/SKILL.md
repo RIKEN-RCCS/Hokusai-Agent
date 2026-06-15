@@ -1,5 +1,5 @@
 ---
-name: configuring
+name: hokusai-configuring
 description: Use when the user wants to set up, configure, or troubleshoot HokusaiAgent — SSH access to the HOKUSAI BigWaterfall2 (HBW2) front-end, the default project/account, the optional embedding endpoint for docs search, or the ~/.hokusai/config.json file. Also use when hokusai tools fail with connection or account errors.
 ---
 

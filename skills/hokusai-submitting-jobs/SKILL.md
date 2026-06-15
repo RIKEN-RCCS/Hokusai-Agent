@@ -1,5 +1,5 @@
 ---
-name: submitting-jobs
+name: hokusai-submitting-jobs
 description: Use when the user wants to run, submit, or launch a job (simulation, computation, benchmark, MPI/OpenMP program) on HOKUSAI BigWaterfall2 (HBW2). Covers partition selection, JobSpec construction, accounts, submission, and interactive sessions.
 ---
 
