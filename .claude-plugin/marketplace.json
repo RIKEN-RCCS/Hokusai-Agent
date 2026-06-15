@@ -1,0 +1,14 @@
+{
+  "name": "hokusai-marketplace",
+  "owner": {
+    "name": "William Dawson",
+    "email": "william.dawson@riken.jp"
+  },
+  "plugins": [
+    {
+      "name": "hokusai",
+      "source": "./",
+      "description": "Slurm job management and documentation search for the RIKEN HOKUSAI BigWaterfall2 supercomputer."
+    }
+  ]
+}
