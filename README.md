@@ -1,6 +1,6 @@
 # HokusaiAgent
 
-Claude Code plugin for the RIKEN **HOKUSAI BigWaterfall2 (HBW2)** supercomputer — submit and monitor Slurm jobs, manage files on the cluster, and search a built-in HBW2 guide, all from the agent.
+Claude Code plugin for the RIKEN **HOKUSAI BigWaterfall2 (HBW2)** supercomputer — submit and monitor Slurm jobs, manage files on the cluster, and search the official documentation, all from the agent.
 
 HBW2 is a CPU-first system: the 312-node Massively Parallel Computer (MPC) and the large-memory server (LMC) do most of the work, with a small 4-node H100 GPU server for postprocessing.
 
@@ -40,4 +40,4 @@ For documentation search, add your API key for the shared RIKEN embedding servic
 }
 ```
 
-The env var `HOKUSAI_EMBED_API_KEY` overrides the file. With the key, docs search uses semantic (vector) matching; without it — or off the RIKEN network — it falls back to BM25 keyword search over the same content. If you also use the AI4S plugin, `RCCS_EMBED_API_KEY` works for both.
+The env var `RCCS_EMBED_API_KEY` sets the key. With it, docs search uses semantic (vector) matching; without it — or off the RIKEN network — it falls back to BM25 keyword search over the same content.
