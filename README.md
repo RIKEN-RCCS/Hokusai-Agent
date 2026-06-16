@@ -40,12 +40,4 @@ For documentation search, add your API key for the shared RIKEN embedding servic
 }
 ```
 
-The env var `HOKUSAI_EMBED_API_KEY` overrides the file. With the key, docs search uses semantic (vector) matching; without it — or off the RIKEN network — it falls back to BM25 keyword search over the same content. The endpoint and model are fixed (`bge-m3:567m`), since the committed embeddings are tied to that model.
-
-## Validate
-
-```
-server/run.sh hokusai_mcp.doctor
-```
-
-Checks the config file, SSH/Slurm reachability, the (optional) embedding endpoint, and the docs index.
+The env var `HOKUSAI_EMBED_API_KEY` overrides the file. With the key, docs search uses semantic (vector) matching; without it — or off the RIKEN network — it falls back to BM25 keyword search over the same content. If you also use the AI4S plugin, `RCCS_EMBED_API_KEY` works for both.
