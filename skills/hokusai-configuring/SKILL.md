@@ -6,7 +6,8 @@ description: Use when the user wants to set up, configure, or troubleshoot Hokus
 # Configuring HokusaiAgent
 
 Settings live in `~/.hokusai/config.json` (env vars `HOKUSAI_HOST`,
-`HOKUSAI_ACCOUNT`, `HOKUSAI_EMBED_API_KEY` override it):
+`HOKUSAI_ACCOUNT`, `HOKUSAI_EMBED_API_KEY` override it; the embedding key also
+falls back to the shared `RCCS_EMBED_API_KEY` — see below):
 
 ```json
 {
@@ -39,6 +40,11 @@ what's missing or being changed.
    user for it and store it under `embedding.api_key`. Without it, search falls
    back to BM25 keyword matching (still useful). The committed index already has
    vectors, so no rebuild is needed — the key just unlocks semantic *query* matching.
+   - **Shared key across R-CCS plugins**: this is the *same* endpoint other RIKEN
+     R-CCS plugins use (e.g. the AI4S plugin). If the user runs more than one, they
+     can `export RCCS_EMBED_API_KEY=<key>` once instead of putting the key in each
+     plugin's config — both `HOKUSAI_EMBED_API_KEY` and the config file still take
+     precedence over it when set.
 4. **Write the file**, then `chmod 600 ~/.hokusai/config.json` — it may hold an
    API key. Never commit it or echo the key back in conversation.
 5. **Validate** with the doctor (checks config, SSH, Slurm, embedding, index):
