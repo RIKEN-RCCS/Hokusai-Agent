@@ -7,7 +7,7 @@
   "plugins": [
     {
       "name": "hokusai",
-      "source": "./",
+      "source": "./plugins/hokusai",
       "description": "Slurm job management and documentation search for the RIKEN HOKUSAI BigWaterfall2 supercomputer."
     }
   ]

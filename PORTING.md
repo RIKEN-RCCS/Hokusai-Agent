@@ -31,10 +31,13 @@ constantly steers users wrong.
 ## 1. Repository architecture
 
 ```
-.claude-plugin/        Claude Code plugin + marketplace manifests
-.codex-plugin/         Codex plugin manifest
+.claude-plugin/        Claude Code marketplace manifest
 .agents/plugins/       Codex marketplace manifest
-.mcp.json              shared MCP launch config (uv tool run from main)
+plugins/<machine>/     actual plugin payload for both Claude Code and Codex
+  .claude-plugin/      Claude Code plugin manifest
+  .codex-plugin/       Codex plugin manifest
+  .mcp.json            shared MCP launch config (uv tool run from main)
+  skills/              one SKILL.md per user-facing workflow
 server/hokusai_mcp/
   data/                packaged static facts, original guide, docs index
   middleware.py        THE ONLY FILE THAT TALKS TO THE CLUSTER
@@ -46,12 +49,11 @@ server/hokusai_mcp/
   rag/                 embed / store / ingest
   doctor.py            health checks
   serving.py           shared CLI entry point
-skills/                one SKILL.md per user-facing workflow
 ```
 
 The plugin metadata is deliberately thin. Claude Code and Codex both read the
-same skills and the same `.mcp.json`; the MCP servers themselves are installed
-as a Python package from `server/` with:
+same plugin payload under `plugins/<machine>/`; the MCP servers themselves are
+installed as a Python package from `server/` with:
 
 ```bash
 uv tool run --quiet --from git+https://github.com/RIKEN-RCCS/Hokusai-Agent.git@main#subdirectory=server hokusai-hpc-mcp
@@ -73,7 +75,7 @@ machine facts as package data.
   when `embeddings.npy` is absent or the endpoint is unreachable).
 - `docs_server.py` — generic RAG tool surface; no changes needed.
 - `serving.py` — no changes needed.
-- `.mcp.json` launch pattern — keep the uv `tool run --from ...@main#subdirectory=server`
+- `plugins/<machine>/.mcp.json` launch pattern — keep the uv `tool run --from ...@main#subdirectory=server`
   shape, changing only the repository URL and console script names for the new
   port.
 
@@ -96,11 +98,12 @@ machine facts as package data.
 - `rag/ingest.py` — doc-source-specific (chunking logic); see Phase 5.
 - `server/hokusai_mcp/data/hokusai_config.json` — replace with the new machine's static facts.
 - `server/hokusai_mcp/data/docs_index/` — rebuild from the new machine's documentation.
-- `skills/` — replace SKILL.md content with machine-specific workflows.
+- `plugins/<machine>/skills/` — replace SKILL.md content with machine-specific workflows.
 - `IRI_CHECKLIST.md` — update to track coverage for the new machine.
-- `.claude-plugin/plugin.json`, `.codex-plugin/plugin.json`, and both
-  marketplace manifests — update names, descriptions, repository URLs, and
-  display metadata for the new machine.
+- `plugins/<machine>/.claude-plugin/plugin.json`,
+  `plugins/<machine>/.codex-plugin/plugin.json`, and both marketplace manifests
+  — update names, descriptions, repository URLs, source paths, and display
+  metadata for the new machine.
 
 ---
 
@@ -189,7 +192,7 @@ Concretely, propagate the usage model into:
   `queue_name` (the dominant partition) and `duration` (the site default).
 - `data/<machine>_config.json` and `get_facility` — describe the machine as it
   is used (lead with the dominant subsystem).
-- `skills/` and `/demo` — frame submission, monitoring, and the demo job around
+- `plugins/<machine>/skills/` and `/demo` — frame submission, monitoring, and the demo job around
   the default run mode. The demo's test job should be a *typical* job for this
   machine, not a leftover from the source repo.
 
@@ -430,10 +433,16 @@ failure-mode lists, too, should reflect what actually goes wrong here (e.g.
 
 Keep Claude Code and Codex packaging side by side:
 
-- `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` for Claude
-  Code.
-- `.codex-plugin/plugin.json` and `.agents/plugins/marketplace.json` for Codex.
-- `.mcp.json` as the shared MCP server config for both clients.
+- Root `.claude-plugin/marketplace.json` for Claude Code.
+- Root `.agents/plugins/marketplace.json` for Codex.
+- `plugins/<machine>/.claude-plugin/plugin.json` and
+  `plugins/<machine>/.codex-plugin/plugin.json` as client-specific manifests.
+- `plugins/<machine>/.mcp.json` as the shared MCP server config for both
+  clients.
+
+Both marketplace catalogs must point at the real plugin directory, for example
+`./plugins/hokusai`. Do not point Codex at `./`; the CLI may add the marketplace
+source but then list zero available plugins.
 
 The MCP launch command should be client-neutral and uv-based:
 
@@ -456,7 +465,7 @@ surface must stay backward-compatible with already-installed skill text: add
 tools and fields freely, but avoid renaming/removing tools or changing response
 shapes without a transition period.
 
-Before changing `.mcp.json`, make sure the local package path works:
+Before changing `plugins/<machine>/.mcp.json`, make sure the local package path works:
 
 ```bash
 uv tool run --quiet --from ./server <machine>-doctor

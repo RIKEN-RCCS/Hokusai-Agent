@@ -8,7 +8,7 @@
       "name": "hokusai",
       "source": {
         "source": "local",
-        "path": "./"
+        "path": "./plugins/hokusai"
       },
       "policy": {
         "installation": "AVAILABLE",

@@ -30,11 +30,11 @@ secondary resource, not the default.
 - **Never write to stdout in server code** — the MCP stdio transport uses it
   for JSON-RPC and any stray print corrupts the session. Log to stderr.
   remotemanager prints progress to stdout; middleware redirects it.
-- **Tools are thin verbs; workflow knowledge lives in `skills/`.** If you're
+- **Tools are thin verbs; workflow knowledge lives in `plugins/hokusai/skills/`.** If you're
   writing a long docstring telling the model *when* to do something, it
   probably belongs in a SKILL.md instead.
 - **The MCP runtime must be self-contained under `server/`.** Plugin metadata is
-  shared across Claude Code and Codex, but `.mcp.json` launches the servers with
+  shared across Claude Code and Codex, but `plugins/hokusai/.mcp.json` launches the servers with
   `uv tool run --from git+https://github.com/RIKEN-RCCS/Hokusai-Agent.git@main#subdirectory=server`.
   Do not depend on `CLAUDE_PLUGIN_ROOT`, Codex-specific root variables, or
   repo-root `data/` paths at runtime. Anything the MCP server needs after uv
@@ -123,10 +123,14 @@ python3 -m venv .venv && .venv/bin/pip install -e .   # or just use ./run.sh
 ## Repository map
 
 ```
-.claude-plugin/         plugin + marketplace manifests
-.codex-plugin/          Codex plugin manifest
+.claude-plugin/         Claude Code marketplace manifest
 .agents/plugins/        Codex marketplace manifest
-.mcp.json               shared MCP launch config (uv tool run from main)
+plugins/hokusai/        actual plugin payload for both Claude Code and Codex
+  .claude-plugin/       Claude Code plugin manifest
+  .codex-plugin/        Codex plugin manifest
+  .mcp.json             shared MCP launch config (uv tool run from main)
+  skills/               hokusai-configuring, hokusai-submitting-jobs,
+                        hokusai-monitoring-jobs, hokusai-reference, hokusai-demo
 IRI_CHECKLIST.md        API coverage tracker — keep in sync with hpc_server.py
 server/hokusai_mcp/
   data/                 packaged guide, static facts, and docs_index
@@ -138,8 +142,7 @@ server/hokusai_mcp/
   rag/                  embed client / index store / markdown ingest pipeline
   doctor.py             health checks (python -m hokusai_mcp.doctor)
   serving.py            shared CLI entry point
-skills/                 hokusai-configuring, hokusai-submitting-jobs,
-                        hokusai-monitoring-jobs, hokusai-reference, hokusai-demo
-                        (machine-prefixed so both this and the AI4S plugin can be
-                        installed at once without skill-name collisions)
 ```
+
+Skill names are machine-prefixed so both this and the AI4S plugin can be
+installed at once without skill-name collisions.
