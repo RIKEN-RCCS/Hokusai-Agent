@@ -1,44 +1,21 @@
-# HOKUSAI BigWaterfall2 (HBW2) agent plugin
+# HOKUSAI BigWaterfall2 (HBW2) Agent
 
-An MCP plugin (Claude Code / Codex) for **HOKUSAI BigWaterfall2 (HBW2)**, the
-RIKEN R-CCS CPU-first Slurm cluster. It lets an agent submit and monitor batch
-jobs, manage files, and search a hand-written machine guide — describing work
-in resource terms (nodes / processes / threads / memory / wall time / project)
-rather than writing sbatch scripts by hand.
+A Claude Code / Codex plugin for **HOKUSAI BigWaterfall2 (HBW2)**, the RIKEN
+R-CCS CPU-first Slurm cluster (312-node MPC, 2-node large-memory LMC, and a
+small 4-node H100 GPU server). It lets an agent submit and monitor Slurm
+jobs, manage files, and search HBW2's documentation, over SSH.
 
-This repo is a thin "skin" over
-[`hpc-agent-core`](https://github.com/william-dawson/hpc-agent-core), which
-provides the generic runtime (SSH middleware, PSI/J-style job models, the
-Slurm backend, the docs RAG pipeline, health checks, and MCP serving glue).
-
-## What HBW2 is
-
-- **MPC** — 312 nodes × 112 Intel Xeon cores, ~112 GiB each; the workhorse.
-- **LMC** — 2 nodes, ~2.7 TiB each; single-host large-memory jobs.
-- **GPU** — 4 nodes, NVIDIA H100; secondary, mainly postprocessing.
-
-Slurm-scheduled, reached over SSH (key-only) via `hokusai1`–`hokusai4`. Every
-job is billed to a project under a fair-share policy. See
-[`docs/hokusai_guide.md`](docs/hokusai_guide.md) for the full orientation.
-
-## Install
-
-The MCP servers live in [`server/`](server/) as the `hokusai-mcp` package.
-
-```bash
-cd server
-python3 -m venv .venv && .venv/bin/pip install -e .
-# or, to expose the servers on your PATH for the plugin: pipx install ./server
-```
-
-This provides three console scripts: `hokusai-hpc` (the job/filesystem MCP
-server), `hokusai-docs` (the docs-search MCP server), and `hokusai-doctor`
-(health checks). The plugin's [`.mcp.json`](plugins/hokusai/.mcp.json)
-launches the first two.
+Built as a thin machine-specific "skin" on top of
+[`hpc-agent-core`](https://pypi.org/project/hpc-agent-core/) — see
+[hpc-agent-core's `PORTING.md`](https://github.com/william-dawson/hpc-agent-core/blob/main/PORTING.md)
+for the general porting guide this repo follows, and
+[`AGENTS.md`](AGENTS.md) for the design rules and cluster facts an agent
+working on this repo should know.
 
 ## Configure
 
-The plugin reads `~/.hpc-agent/hokusai.json`:
+Settings live in `~/.hpc-agent/hokusai.json` (the common directory shared by
+every hpc-agent-core plugin):
 
 ```json
 {
@@ -49,35 +26,106 @@ The plugin reads `~/.hpc-agent/hokusai.json`:
 
 - `ssh.host` — an alias in `~/.ssh/config` or `user@hokusai.riken.jp`
   (register your SSH key via the portal `https://hokusai.riken.jp/hbw2/`
-  first; auth is key-only).
+  first; auth is key-only). `HOKUSAI_HOST` overrides the file.
 - `defaults.account` — the project charged when a job names none;
-  **mandatory** on HBW2. `RB…` (RIKEN) or `HP…` (HPCI).
+  **mandatory** on HBW2 (`RB…` RIKEN or `HP…` HPCI). `HOKUSAI_ACCOUNT`
+  overrides the file.
+- A legacy `~/.hokusai/config.json` is still read if it's the only config
+  present.
 
-Env overrides: `HOKUSAI_HOST`, `HOKUSAI_ACCOUNT`, `HOKUSAI_CONFIG`. The
-`hokusai-configuring` skill walks a user through this.
+For documentation search, add your API key for the shared RIKEN embedding
+service:
+
+```json
+{
+  "ssh": { "host": "hokusai" },
+  "defaults": { "account": "RB99999" },
+  "embedding": { "api_key": "..." }
+}
+```
+
+`HOKUSAI_EMBED_API_KEY` (or the shared `RCCS_EMBED_API_KEY`) sets the key.
+With it, docs search uses semantic (vector) matching; without it — or off
+the RIKEN network — it falls back to BM25 keyword search over the same
+content. The `hokusai-configuring` skill walks through this interactively.
+
+## Install
+
+### Prerequisite: uv
+
+The plugin starts its MCP servers with `uv tool run` from this repository's
+`main` branch, so [`uv`](https://docs.astral.sh/uv/) must be installed and
+on your `PATH` before Claude Code or Codex starts the plugin:
+
+```bash
+brew install uv        # or: curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+Restart Claude Code or Codex after installing uv so the plugin process
+inherits the updated `PATH`.
+
+### Claude Code
+
+```
+/plugin marketplace add RIKEN-RCCS/Hokusai-Agent
+/plugin install hokusai@hokusai-marketplace
+/reload-plugins
+```
+
+### Codex
+
+```
+codex plugin marketplace add RIKEN-RCCS/Hokusai-Agent
+```
+
+Then open `/plugins`, install `hokusai`, start a new thread, and run
+`/hokusai-demo` to verify the connection end-to-end.
+
+### Manual (any MCP-compatible client)
+
+Create or edit `.mcp.json` in your project root:
+
+```json
+{
+  "mcpServers": {
+    "hokusai-hpc": {
+      "command": "uv",
+      "args": ["tool", "run", "--quiet", "--from", "git+https://github.com/RIKEN-RCCS/Hokusai-Agent.git@main#subdirectory=server", "hokusai-hpc-mcp"],
+      "env": {}
+    },
+    "hokusai-docs": {
+      "command": "uv",
+      "args": ["tool", "run", "--quiet", "--from", "git+https://github.com/RIKEN-RCCS/Hokusai-Agent.git@main#subdirectory=server", "hokusai-docs-mcp"],
+      "env": {}
+    }
+  }
+}
+```
 
 ## Verify
 
 ```bash
-cd server
-.venv/bin/hokusai-doctor            # config, SSH+Slurm, guide, docs index, embedding
-.venv/bin/python tests/smoke.py     # read-only MCP stdio test
-.venv/bin/python tests/smoke.py --job   # + submits a real tiny job (needs a project)
+uv tool run --quiet --from git+https://github.com/RIKEN-RCCS/Hokusai-Agent.git@main#subdirectory=server hokusai-doctor
 ```
 
-The embedding check is optional — off the RIKEN network the docs server falls
-back to keyword (BM25) search.
+All lines should read `✓` except possibly embedding (falls back to keyword
+search outside RIKEN's network — not blocking).
 
-## Layout
+## Development
 
-- `server/hokusai_mcp/` — the plugin package (config, compute, MCP servers,
-  bundled `data/`).
-- `plugins/hokusai/` — Claude Code / Codex plugin manifests, `.mcp.json`, and
-  skills.
-- `docs/hokusai_guide.md` — the machine guide (also bundled under the package
-  as `data/hokusai_guide.md`, which is what the docs index is built from).
-- [`AGENTS.md`](AGENTS.md) — design rules, cluster facts, repo map.
-- [`IRI_CHECKLIST.md`](IRI_CHECKLIST.md) — IRI Facility API coverage.
+```
+cd server
+uv run python -m hokusai_mcp.doctor        # health check
+uv run python tests/smoke.py               # read-only MCP stdio test
+uv run python tests/smoke.py --job         # + submits a real tiny job
+```
 
-See [hpc-agent-core's `PORTING.md`](https://github.com/william-dawson/hpc-agent-core/blob/main/PORTING.md)
-for the general porting process this repo follows.
+Rebuilding the docs index after editing `hokusai_guide.md`:
+
+```
+cd server
+uv run python -m hpc_agent_core.rag.ingest
+```
+
+Commit the resulting `hokusai_mcp/data/docs_index/` (chunks.json, and
+embeddings.npy if an embedding API key was configured at ingest time).
