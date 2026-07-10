@@ -59,11 +59,17 @@ def default_account() -> str | None:
     HBW2 requires `--account` on every job, but the project ID is a
     per-user choice, so it belongs in the user's config (or an env var),
     not in the bundled cluster facts. Resolves HOKUSAI_ACCOUNT, then the
-    config file's `defaults.account`, then None (caller then errors with a
-    clear "name a project" message rather than submitting an unbillable job).
+    config file's `defaults.account`, then the pre-migration top-level
+    `account` key (the old README's example config was `{"ssh": ...,
+    "account": "RB999999"}` — without this fallback, anyone with an
+    existing config file from before this schema changed would silently
+    lose their default and start hitting the "name a project" error on
+    every submit_job), then None.
     """
+    user_config = _user_config()
     return (os.environ.get("HOKUSAI_ACCOUNT")
-            or (_user_config().get("defaults") or {}).get("account"))
+            or (user_config.get("defaults") or {}).get("account")
+            or user_config.get("account"))
 
 
 def default_partition() -> str:
