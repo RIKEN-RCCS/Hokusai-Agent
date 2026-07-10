@@ -1,108 +1,48 @@
 ---
 name: hokusai-demo
-description: Interactive demo of HokusaiAgent — walks through facility info, live cluster status, docs search, filesystem access, and CPU job submission on HOKUSAI BigWaterfall2 (HBW2).
-user-invocable: true
+description: Guided end-to-end demonstration of the HOKUSAI BigWaterfall2 (HBW2) plugin — verify configuration, inspect the facility, submit a tiny job, follow it to completion, and read its output. Use when the user wants to try the plugin or confirm it works after install.
 ---
 
-# HokusaiAgent demo
+# HOKUSAI (HBW2) demo
 
-Run each step in order. Present results as a readable narrative — not raw JSON dumps. Use markdown headers and tables to make it scannable. Pause after each step and show output before moving on.
+A short, safe walkthrough that exercises the whole plugin against the real
+cluster. Explain each step to the user before running it.
 
----
+## 1. Confirm it's configured
 
-## Step 1 — Facility overview
+Run `get_facility` — it needs no SSH and returns HBW2's static facts. If it
+returns the facility JSON, config parsing works. Then run `get_projects` to
+prove SSH + accounting are reachable and to show which projects can be
+billed. If either errors with "Plugin not configured", switch to the
+**hokusai-configuring** skill.
 
-Call `get_facility`. Present the key facts as a short table:
-- Subsystems: MPC / LMC / GPU — node count, CPU, memory per node
-- Partitions: name → max nodes, max cores, memory/node, max wall time (one row each)
-- Storage tiers (home, data, /tmp_work)
+## 2. Look at live capacity
 
-Lead with one sentence: **"HOKUSAI BigWaterfall2 is RIKEN's CPU-first supercomputer — 312 Intel Xeon MPC nodes plus a large-memory server, with a small 4-node H100 GPU server for postprocessing."**
+`get_resources` shows per-partition node occupancy — point out which
+partition has idle nodes, i.e. where a job would start soonest.
 
----
+## 3. Submit a tiny job
 
-## Step 2 — Live cluster status
+Show the user this spec first, then submit it with `submit_job`:
 
-Call `get_resources`. For each partition, show a mini utilization bar:
+- `executable`: `echo "hello from HBW2"; hostname; sleep 20`
+- `resources`: `node_count=1, processes_per_node=1, cpu_cores_per_process=1`
+- `environment`: `{"OMP_NUM_THREADS": "1"}`
+- `attributes`: `queue_name="mpc", duration="00:03:00"` (account defaults to
+  the configured project)
 
-```
-mpc    ████████░░  250/312 nodes busy
-mpc_l  ███░░░░░░░   2/156 busy
-...
-```
+Use `render_job_script` first if the user wants to see the exact sbatch
+script.
 
-(Use █ for allocated, ░ for idle, scaled to ~10 chars. Add the idle count in plain text.)
+## 4. Follow it
 
-Point out which partitions have the most idle nodes right now — that's where a job would start fastest.
+Poll `get_job_status(job_id)` until the state reaches `completed`
+(queued → active → completed). Explain the wait reason if it sits queued.
 
----
+## 5. Read the output
 
-## Step 3 — Documentation search
+`read_job_output(job_id)` prints the `slurm-<jobid>.out` log — the user
+should see the `hello from HBW2` line and the compute node's hostname.
 
-Call `search_docs` with *"what is the core-time budget system and how is usage tracked per project?"*
-
-This surfaces something genuinely HBW2-specific: the per-project core-time accounting that controls whether jobs can submit at all — not something you can guess from generic HPC knowledge.
-
-Show the top result: the breadcrumb, a short excerpt, and the source. Note whether the result came from vector search or BM25 keyword matching (the `method` field). If `vector`, say: *"Semantic search is active — results are ranked by meaning via the shared RIKEN BGE-M3 endpoint."* If `bm25`, say: *"Running on BM25 keyword search (no embedding API key set, or off the RIKEN network) — still works fully offline."*
-
----
-
-## Step 4 — Filesystem
-
-Call `fs_ls(".")` to list the user's home directory. Show the listing cleanly (just names, sizes, dates — no raw flag noise). Highlight anything interesting: job scripts in `.hokusai/jobs/`, `/data` symlinks, project directories.
-
-Then demonstrate the filesystem tools:
-1. `fs_upload("/tmp/hokusai-demo.txt", "hello from HokusaiAgent\n")` — write a file
-2. `fs_checksum("/tmp/hokusai-demo.txt")` — show the SHA-256
-3. `fs_cp("/tmp/hokusai-demo.txt", "/tmp/hokusai-demo-copy.txt")` then `fs_checksum` — confirm the checksum matches
-
-Present this as: *"Upload, checksum, copy — the filesystem toolkit."*
-
----
-
-## Step 5 — Recent jobs
-
-Call `get_job_statuses([])` (empty list = last 2 days).
-
-If there are jobs, show them as a table: job ID | name | state | partition | elapsed. Highlight any FAILED jobs and offer to investigate.
-
-If there are no recent jobs, say so and move straight to Step 6.
-
----
-
-## Step 6 — Test job
-
-Tell the user: *"Let's submit a quick CPU test job to verify end-to-end submission and output."* (If you know the user's project ID, set `account`; otherwise the configured default is used.)
-
-Submit via `submit_job` with this spec:
-```json
-{
-  "name": "hokusai-demo",
-  "executable": "hostname && echo '---' && lscpu | grep -E 'Model name|Socket|Core|Thread' && echo '---' && free -h",
-  "resources": {"node_count": 1, "processes_per_node": 1},
-  "attributes": {"duration": 300, "queue_name": "mpc"}
-}
-```
-
-Show the user the rendered job ID and script path. Then call `get_job_status(<job_id>)` immediately and report the initial state + queue reason if present.
-
----
-
-## Step 7 — Monitor and read output
-
-Poll `get_job_status` once every ~15 seconds (use `run_command_on_cluster("sleep 15")` as the wait). Stop when state is `completed` or `failed` (or after 5 polls — tell the user to check back with `get_job_status` if it's still queued).
-
-Once completed, call `fs_tail(<workdir>/slurm-<job_id>.out)` and show the output. It should report the node hostname and an Intel Xeon CPU — confirm the CPU model matches what `get_facility` reported for MPC.
-
----
-
-## Closing
-
-Summarize what just happened in 5 bullet points:
-- Facility and live cluster status checked
-- Documentation searched
-- Filesystem explored with upload, checksum, and copy
-- A CPU job submitted, ran, and its output (Intel Xeon node info) retrieved
-- Everything went through one SSH layer to the HBW2 front-end
-
-Then say: *"From here you can submit real workloads with /hokusai-submitting-jobs, monitor them with /hokusai-monitoring-jobs, or ask anything about the cluster."*
+That covers configuration, facility info, live resources, submission,
+monitoring, and output retrieval — the full loop.
