@@ -83,6 +83,34 @@ Then open `/plugins`, install `hokusai`, start a new thread, and run
 
 ### Manual (any MCP-compatible client)
 
+#### Option A — Using Hatch!
+
+[Hatch!](https://github.com/CrackingShells/Hatch) registers MCP servers on any
+supported host from a single command. Install it once, then configure both
+servers — replace `<host>` with your target platform (`claude-code`, `codex`,
+`cursor`, `vscode`, `claude-desktop`, `kiro`, `gemini`, `lmstudio`, or any other
+[supported host](https://github.com/CrackingShells/Hatch#supported-mcp-hosts)):
+
+```bash
+pip install hatch-xclam
+
+hatch mcp configure hokusai-hpc --host <host> \
+  --command uv \
+  --args "tool run --quiet --from git+https://github.com/RIKEN-RCCS/Hokusai-Agent.git@main#subdirectory=server hokusai-hpc-mcp"
+
+hatch mcp configure hokusai-docs --host <host> \
+  --command uv \
+  --args "tool run --quiet --from git+https://github.com/RIKEN-RCCS/Hokusai-Agent.git@main#subdirectory=server hokusai-docs-mcp"
+```
+
+To replicate the same configuration to additional hosts:
+
+```bash
+hatch mcp sync --from-host <host> --to-host cursor,vscode
+```
+
+#### Option B — Edit `.mcp.json` directly
+
 Create or edit `.mcp.json` in your project root:
 
 ```json
