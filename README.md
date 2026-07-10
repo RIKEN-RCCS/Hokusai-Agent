@@ -155,7 +155,7 @@ Rebuilding the docs index after editing `hokusai_guide.md`:
 
 ```
 cd server
-uv run python -m hpc_agent_core.rag.ingest
+uv run python -m hokusai_mcp.ingest
 ```
 
 Commit the resulting `hokusai_mcp/data/docs_index/` (chunks.json, and
