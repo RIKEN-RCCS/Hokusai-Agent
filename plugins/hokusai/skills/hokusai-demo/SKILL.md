@@ -1,48 +1,75 @@
 ---
 name: hokusai-demo
-description: Guided end-to-end demonstration of the HOKUSAI BigWaterfall2 (HBW2) plugin — verify configuration, inspect the facility, submit a tiny job, follow it to completion, and read its output. Use when the user wants to try the plugin or confirm it works after install.
+description: Interactive demo of the HOKUSAI BigWaterfall2 (HBW2) plugin — walks through facility info, live cluster status, projects, job submission, and output retrieval on the RIKEN HOKUSAI BigWaterfall2 (HBW2) supercomputer. User-invocable with /hokusai-demo.
+user-invocable: true
 ---
 
 # HOKUSAI (HBW2) demo
 
-A short, safe walkthrough that exercises the whole plugin against the real
-cluster. Explain each step to the user before running it.
+Run each step in order — actually call the tools, don't just describe the
+plan. Present results as a readable narrative, not raw JSON dumps. Pause
+after each step and show the output before moving on.
 
-## 1. Confirm it's configured
+---
 
-Run `get_facility` — it needs no SSH and returns HBW2's static facts. If it
-returns the facility JSON, config parsing works. Then run `get_projects` to
-prove SSH + accounting are reachable and to show which projects can be
-billed. If either errors with "Plugin not configured", switch to the
-**hokusai-configuring** skill.
+## Step 1 — Confirm it's configured
 
-## 2. Look at live capacity
+Call `get_facility` — it needs no SSH and returns HBW2's static facts. If it
+returns the facility JSON, config parsing works. Then call `get_projects` to
+prove SSH + accounting are reachable, and show which projects can be billed.
+If either errors with "Plugin not configured," switch to the
+**hokusai-configuring** skill instead of continuing.
 
-`get_resources` shows per-partition node occupancy — point out which
-partition has idle nodes, i.e. where a job would start soonest.
+## Step 2 — Live cluster status
 
-## 3. Submit a tiny job
+Call `get_resources`. For each partition (mpc, mpc_l, lmc, gpu) show a mini
+utilization bar:
 
-Show the user this spec first, then submit it with `submit_job`:
+```
+mpc   ████████░░  28/312 idle
+```
 
-- `executable`: `echo "hello from HBW2"; hostname; sleep 20`
-- `resources`: `node_count=1, processes_per_node=1, cpu_cores_per_process=1`
-- `environment`: `{"OMP_NUM_THREADS": "1"}`
-- `attributes`: `queue_name="mpc", duration="00:03:00"` (account defaults to
-  the configured project)
+(Use █ for allocated, ░ for idle, scaled to ~10 chars; add the idle count in
+plain text.) Point out which partition has the most idle capacity right
+now — that's where a job would start soonest.
 
-Use `render_job_script` first if the user wants to see the exact sbatch
-script.
+## Step 3 — Submit a tiny job
 
-## 4. Follow it
+Tell the user you'll submit a quick test job, then call `submit_job`:
 
-Poll `get_job_status(job_id)` until the state reaches `completed`
-(queued → active → completed). Explain the wait reason if it sits queued.
+```json
+{
+  "name": "hokusai-demo",
+  "executable": "echo 'hello from HBW2'; hostname; sleep 20",
+  "resources": {"node_count": 1, "processes_per_node": 1, "cpu_cores_per_process": 1},
+  "environment": {"OMP_NUM_THREADS": "1"},
+  "attributes": {"duration": "00:03:00", "queue_name": "mpc"}
+}
+```
 
-## 5. Read the output
+(`attributes.account` is left unset — it defaults to the configured
+project.) Use `render_job_script` first only if the user wants to see the
+exact sbatch script before it runs. Show the returned job ID and script
+path.
 
-`read_job_output(job_id)` prints the `slurm-<jobid>.out` log — the user
-should see the `hello from HBW2` line and the compute node's hostname.
+## Step 4 — Monitor
 
-That covers configuration, facility info, live resources, submission,
-monitoring, and output retrieval — the full loop.
+Poll `get_job_status(job_id)` every ~15 seconds until the state reaches
+`completed` (queued → active → completed), stopping after ~5 polls if it's
+still queued — tell the user to check back with `get_job_status` themselves
+in that case. Explain the wait reason if one is reported while queued.
+
+## Step 5 — Read the output
+
+Call `read_job_output(job_id)` — it prints the `slurm-<jobid>.out` log. The
+user should see the `hello from HBW2` line and the compute node's hostname.
+
+---
+
+## Closing
+
+Summarize in four bullets: configuration + facility + live status checked,
+a project confirmed billable, a CPU job submitted and monitored, and its
+output retrieved. Then invite the user to submit real work via
+`/hokusai-submitting-jobs` or monitor existing jobs via
+`/hokusai-monitoring-jobs`.
